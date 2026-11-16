@@ -1,0 +1,54 @@
+import type ISeeder from "./ISeeder.ts";
+import poolsRepositores from "../repositories/poolsRepositores.ts";
+import Config from "../config.ts";
+import type { PoolData } from "commons/services/uniswapTypes.ts";
+import { getTopPools } from "commons/services/uniswapService.ts";
+import Pool from "commons/models/pool.ts";
+
+export class PoolSeeder implements ISeeder {
+    async execute() : Promise<void> {
+        console.log(`Initializing pools seeder...`);
+
+        console.log(`Checking if the pools already exists...`);
+        const count = await poolsRepositores.countPools(Config.EXCHANGE2, Config.NETWORK2);
+        if(count > 0) {
+            console.log(`The pools already exists...exitting...`);
+            return;
+        }
+
+        let skip : number = 0;
+        let pools : PoolData[] = [];
+
+        do {
+            pools = await getTopPools(1000, skip);
+            console.log(`Loaded ${pools.length} pools...`);
+
+            for (const pool of pools) {
+                console.log(pool.id);
+                await poolsRepositores.addPool(new Pool({
+                    id: pool.id,
+                    exchange: Config.EXCHANGE2,
+                    network: Config.NETWORK2,
+                    fee: Number(pool.feeTier),
+                    symbol: pool.token0.symbol + pool.token1.symbol,
+                    symbol0: pool.token0.symbol,
+                    symbol1: pool.token1.symbol,
+                    token0: pool.token0.id,
+                    token1: pool.token1.id,
+                    price0: parseFloat(pool.token0Price),
+                    price1: parseFloat(pool.token1Price),
+                    decimals0: parseInt(pool.token0.decimals),
+                    decimals1: parseInt(pool.token1.decimals)
+                } as Pool));
+            }
+
+            skip += pools.length;
+            console.log(`Inserted ${pools.length} pools...`);
+        }
+        while(pools.length > 0);
+
+        console.log(`Finalized pools seeder.`);
+    }
+}
+
+export default new PoolSeeder();

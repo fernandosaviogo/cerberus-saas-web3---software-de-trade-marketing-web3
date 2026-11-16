@@ -1,0 +1,124 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../data"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model users {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  address String @unique
+  name String
+  email String
+  status Int @default(1)
+  network Int @default(1)
+  planId String
+  privateKey String
+  activationCode String
+  activationDate DateTime
+  automations automations[]
+  trades trades[] @ignore
+
+  @@index([email])
+}
+
+model plans {
+  id String @id @map("_id")
+  name String
+  price String
+  tokenSymbol String
+  tokenAddress String
+  maxAutomations Int
+}
+
+model tokens {
+  id String @id @map("_id")
+  name String
+  symbol String
+  decimals Int @default(18)
+  network Int @default(1)
+}
+
+model pools {
+  id String @id @map("_id")
+  token0 String
+  token1 String
+  symbol String
+  symbol0 String
+  symbol1 String
+  decimals0 Int
+  decimals1 Int
+  fee Int
+  exchange Int @default(1)
+  network Int @default(1)
+
+  price0 Float
+  price0_15 Float?
+  price0_60 Float?
+  price0Change Float
+  price0Change_15 Float?
+  price0Change_60 Float?
+
+  price1 Float
+  price1_15 Float?
+  price1_60 Float?
+  price1Change Float
+  price1Change_15 Float?
+  price1Change_60 Float?
+
+  lastUpdate DateTime
+  lastUpdate_15 DateTime?
+  lastUpdate_60 DateTime?
+
+  automations automations[] @ignore
+}
+
+type Condition {
+  field String
+  operator String
+  value String
+}
+
+model  automations {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId         String   @db.ObjectId
+  user           users    @relation(fields: [userId], references: [id])
+  exchange       Int      @default(1)
+  network        Int      @default(1)
+  name           String
+  poolId         String?
+  pool           pools?    @relation(fields: [poolId], references: [id])
+  openCondition  Condition
+  closeCondition Condition?
+  isOpened       Boolean   @default(false)
+  isActive       Boolean   @default(false)
+  nextAmount     String
+  pnl            Float     @default(0)
+  trades         trades[]
+  tradeCount     Int       @default(0)
+}
+
+model trades {
+  id             String      @id @default(auto()) @map("_id") @db.ObjectId
+  userId         String      @db.ObjectId
+  user           users       @relation(fields: [userId], references: [id])
+  automationId   String      @db.ObjectId
+  automation     automations @relation(fields: [automationId], references: [id])
+  openDate       DateTime    @default(now())
+  closeDate      DateTime?
+  openPrice      Float
+  openAmountIn   String
+  openAmountOut  String
+  closePrice     Float?
+  closeAmountIn  String?
+  closeAmountOut String?
+  pnl            Float       @default(0)
+}

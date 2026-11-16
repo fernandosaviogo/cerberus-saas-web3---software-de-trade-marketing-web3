@@ -1,0 +1,9 @@
+{
+    "apps": [
+        {
+            "name": "ceberus-backend",
+            "script": "npm",
+            "args": "start"
+        }
+    ]
+}
